@@ -6,7 +6,7 @@ char pass[] = "*******";    // your network password (use for WPA, or use as key
 
 int status = WL_IDLE_STATUS;
 
-IPAddress server(192, 168, 1, 121);  // numeric IP for Google (no DNS)
+IPAddress server(192, 168, 1, 121);  // Server IP
 
 WiFiClient client;
 
