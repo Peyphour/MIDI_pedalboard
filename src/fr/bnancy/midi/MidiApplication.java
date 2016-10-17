@@ -1,9 +1,11 @@
 package fr.bnancy.midi;
 
-import java.util.HashMap;
+import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.sound.midi.ShortMessage;
 
+import fr.bnancy.midi.Device.TYPE;
 import fr.bnancy.midi.server.MidiSocketServer;
 import fr.bnancy.midi.server.SerialPortServer;
 import fr.bnancy.midi.server.listener.ComPortDiscoveredListener;
@@ -11,6 +13,9 @@ import fr.bnancy.midi.server.listener.PacketReceivedListener;
 import fr.bnancy.midi.server.listener.ServerEventListener;
 import fr.bnancy.midi.util.MidiCommon;
 import fr.bnancy.midi.view.MainWindow;
+import gnu.io.NoSuchPortException;
+import gnu.io.PortInUseException;
+import gnu.io.UnsupportedCommOperationException;
 
 public class MidiApplication implements PacketReceivedListener, ServerEventListener, ComPortDiscoveredListener {
 	
@@ -18,28 +23,34 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 	MidiSocketServer server;
 	SerialPortServer comServer;
 	
-	// Key : Device number (i.e. Pin number on Arduino)
-	// Value : value to be sent with MIDI message (program number or control change number)
-	HashMap<Integer, Integer> presetChangeDevice = new HashMap<>();
-	HashMap<Integer, Integer> controlChangeDevice = new HashMap<>();
-	HashMap<Integer, Integer> analogDevice = new HashMap<>(); // i.e. Wah or volume pedal
+	ArrayList<Device> devices = new ArrayList<Device>();
 	
 	public void start() {
 		
-		mw = new MainWindow();
+		mw = new MainWindow(this);
+		
 		mw.refreshList();
-		mw.setSize(700, 430);
+		mw.setSize(740, 430);
 		mw.setVisible(true);
 		
-		presetChangeDevice.put(0, 1);
-		controlChangeDevice.put(1, 2);
-		analogDevice.put(16, 5);
+		devices.add(new Device(0, -1, TYPE.PRESET_CHANGE, "DIGIT1"));
+		devices.add(new Device(1, -1, TYPE.PRESET_CHANGE, "DIGIT2"));
+		devices.add(new Device(16, -1, TYPE.ANALOG, "EXPR1"));
+		
+		mw.setDevices(devices);
 		
 		server = new MidiSocketServer(14123, this, this);
 		server.run();
 		
 		comServer = new SerialPortServer(this);
 		comServer.run();
+	}
+	
+	public Device searchDevice(int pin) {
+		return devices.stream()
+			.filter(d -> d.getPin() == pin)
+			.findFirst()
+			.get();
 	}
 
 	@Override
@@ -53,23 +64,24 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 	 */
 	public void handlePacket(byte packet[]) {
 		
+		Device device = searchDevice((int) packet[0] & 0x7F);
+		
+		if(device.getChannel() == -1)
+			return;
+		
 		switch(((int)packet[0] & 0xFF) >> 7) {
 		case 0:
-			if(analogDevice.containsKey((int) packet[0] & 0x7F))
+			if(device != null)
 				MidiCommon.sendMidiMessage(MidiCommon.getReceiverForName(mw.getSelectedMidiDevice(), true), 
-						ShortMessage.CONTROL_CHANGE, analogDevice.get((int) packet[0] & 0x7F), (int) packet[1] & 0xFF);
-			else
-				System.out.println("Not found : analog");
+						ShortMessage.CONTROL_CHANGE, searchDevice((int) packet[0] & 0x7F).getChannel(), (int) packet[1] & 0xFF);
 			break;
 		case 1:
-			if(presetChangeDevice.containsKey((int) packet[0] & 0x7F))
+			if(device != null && device.getType() == TYPE.PRESET_CHANGE)
 				MidiCommon.sendMidiMessage(MidiCommon.getReceiverForName(mw.getSelectedMidiDevice(), true), 
-						ShortMessage.PROGRAM_CHANGE, presetChangeDevice.get((int) packet[0] & 0x7F), 0);
-			else if(controlChangeDevice.containsKey((int) packet[0] & 0x7F))
+						ShortMessage.PROGRAM_CHANGE, device.getChannel(), 0);
+			else if(device != null && device.getType() == TYPE.CONTROL_CHANGE)
 				MidiCommon.sendMidiMessage(MidiCommon.getReceiverForName(mw.getSelectedMidiDevice(), true), 
-						ShortMessage.CONTROL_CHANGE, 
-						controlChangeDevice.get((int) packet[0] & 0x7F), 
-						((int) packet[1] & 0xFF) * 0x40);
+						ShortMessage.CONTROL_CHANGE, device.getChannel(), ((int) packet[1] & 0xFF) * 0x40);
 			else
 				System.out.println("Not found");
 			break;
@@ -92,6 +104,21 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 	@Override
 	public void handlePort(String portName) {
 		mw.addNewComPort(portName);
+	}
+	
+	@Override
+	public void handlePortRemoved(String portName) {
+		mw.removePort(portName);
+	}
+
+	public boolean pingSerial(String port) {
+		try {
+			return comServer.ping(port);
+		} catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
 	}
 }
 

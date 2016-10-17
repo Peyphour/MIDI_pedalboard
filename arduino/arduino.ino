@@ -1,4 +1,3 @@
-#include <SPI.h>
 #include <WiFi101.h>
 
 char ssid[] = "*******"; //  your network SSID (name)
@@ -35,8 +34,31 @@ device numericDevices[2] = {
   }
 };
 
+int CONFIG_PIN = 14;
+
+void config() {
+  bool running = true;
+  String data;
+  digitalWrite(LED_BUILTIN, HIGH); 
+  while(running) {
+    if(Serial.available()) {
+      data = Serial.readStringUntil('#');
+      if(data == "PING")
+        Serial.print("PONG");
+      else if(data == "QUIT")
+        running = false;
+    }
+  }
+  digitalWrite(LED_BUILTIN, LOW); 
+}
+
 void setup() {
+  
   Serial.begin(9600);
+
+  pinMode(CONFIG_PIN, INPUT);
+  if(digitalRead(CONFIG_PIN)) 
+    config();
 
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
