@@ -5,15 +5,18 @@ import java.util.HashMap;
 import javax.sound.midi.ShortMessage;
 
 import fr.bnancy.midi.server.MidiSocketServer;
+import fr.bnancy.midi.server.SerialPortServer;
+import fr.bnancy.midi.server.listener.ComPortDiscoveredListener;
 import fr.bnancy.midi.server.listener.PacketReceivedListener;
 import fr.bnancy.midi.server.listener.ServerEventListener;
 import fr.bnancy.midi.util.MidiCommon;
 import fr.bnancy.midi.view.MainWindow;
 
-public class MidiApplication implements PacketReceivedListener, ServerEventListener {
+public class MidiApplication implements PacketReceivedListener, ServerEventListener, ComPortDiscoveredListener {
 	
 	MainWindow mw;
 	MidiSocketServer server;
+	SerialPortServer comServer;
 	
 	// Key : Device number (i.e. Pin number on Arduino)
 	// Value : value to be sent with MIDI message (program number or control change number)
@@ -22,10 +25,10 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 	HashMap<Integer, Integer> analogDevice = new HashMap<>(); // i.e. Wah or volume pedal
 	
 	public void start() {
+		
 		mw = new MainWindow();
 		mw.refreshList();
-		mw.setSize(700, 400);
-		
+		mw.setSize(700, 430);
 		mw.setVisible(true);
 		
 		presetChangeDevice.put(0, 1);
@@ -34,6 +37,9 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 		
 		server = new MidiSocketServer(14123, this, this);
 		server.run();
+		
+		comServer = new SerialPortServer(this);
+		comServer.run();
 	}
 
 	@Override
@@ -46,11 +52,6 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 	 * packet[1] : target value (only for control change, ignored for program change)
 	 */
 	public void handlePacket(byte packet[]) {
-		
-		System.out.println("New packet");
-		System.out.println(((int)packet[0] & 0xFF) >> 7);
-		System.out.println((int) packet[0] & 0x7F);
-		System.out.println((int) packet[1] & 0xFF);
 		
 		switch(((int)packet[0] & 0xFF) >> 7) {
 		case 0:
@@ -80,11 +81,17 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 
 	public void stop() {
 		server.stop();
+		comServer.stop();
 	}
 
 	@Override
 	public void handleServerEvent(String event) {
 		mw.addLogMessage(event);
+	}
+
+	@Override
+	public void handlePort(String portName) {
+		mw.addNewComPort(portName);
 	}
 }
 

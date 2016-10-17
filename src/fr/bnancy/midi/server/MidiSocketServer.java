@@ -52,7 +52,6 @@ public class MidiSocketServer {
 						Socket client = socket.accept();
 						emitEvent("Client connected with IP : " + client.getInetAddress().toString());
 						clients.add(new ClientRunnable(client));
-						
 						new Thread(clients.get(clients.size() - 1)).start();
 
 					} catch (IOException e) {
@@ -69,7 +68,6 @@ public class MidiSocketServer {
 		try {
 			for(ClientRunnable client : clients) {
 				client.running = false;
-				
 			}
 			this.socket.close();
 		} catch (IOException e) {
