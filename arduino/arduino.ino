@@ -1,11 +1,8 @@
+#include <SPI.h>
 #include <WiFi101.h>
-
-char ssid[] = "*******"; //  your network SSID (name)
-char pass[] = "*******";    // your network password (use for WPA, or use as key for WEP)
+#include <Wire.h>
 
 int status = WL_IDLE_STATUS;
-
-IPAddress server(192, 168, 1, 121);  // Server IP
 
 WiFiClient client;
 
@@ -34,18 +31,77 @@ device numericDevices[2] = {
   }
 };
 
-int CONFIG_PIN = 14;
+int CONFIG_PIN = 10;
+int EEPROM = 0x50;
 
+void writeEEPROM(int deviceaddress, unsigned int eeaddress, byte data )  {
+  Wire.beginTransmission(deviceaddress);
+  Wire.write((int)(eeaddress >> 8));   // MSB
+  Wire.write((int)(eeaddress & 0xFF)); // LSB
+  Wire.write(data);
+  Wire.endTransmission();
+ 
+  delay(5);
+}
+
+byte readEEPROM(int deviceaddress, unsigned int eeaddress )  {
+  byte rdata = 0xFF;
+ 
+  Wire.beginTransmission(deviceaddress);
+  Wire.write((int)(eeaddress >> 8));   // MSB
+  Wire.write((int)(eeaddress & 0xFF)); // LSB
+  Wire.endTransmission();
+ 
+  Wire.requestFrom(deviceaddress,1);
+ 
+  if (Wire.available()) rdata = Wire.read();
+
+  return rdata;
+}
+
+void writeStringToEEPROM(int deviceAddress, unsigned int startAddress, String data) {
+  writeEEPROM(deviceAddress, startAddress, data.length() + 1);
+  for(int i = 0; i < data.length() + 1; i++) {
+    writeEEPROM(deviceAddress, i + 1 + startAddress, data.charAt(i));
+  }
+}
+
+String readStringFromEEPROM(int deviceAddress, unsigned int startAddress) {
+  int size = readEEPROM(deviceAddress, startAddress);
+  char data[size];
+  
+  for(int i = 0; i < size; i++) {
+    data[i] = (char)readEEPROM(deviceAddress, i + 1 + startAddress);
+  }
+
+  return data;
+}
+ 
 void config() {
   bool running = true;
   String data;
   digitalWrite(LED_BUILTIN, HIGH); 
+
+  delay(1000);
+
   while(running) {
     if(Serial.available()) {
       data = Serial.readStringUntil('#');
       if(data == "PING")
         Serial.print("PONG");
-      else if(data == "QUIT")
+      else if(data == "WIFI") {
+        String ssid = Serial.readStringUntil('#');
+        String password = Serial.readStringUntil('#');
+        String server = Serial.readStringUntil('#');
+        
+        unsigned int address = 0;
+        writeStringToEEPROM(EEPROM, address, ssid);
+        address += ssid.length() + 2;
+        writeStringToEEPROM(EEPROM, address, password);
+        address += password.length() + 2;
+        writeStringToEEPROM(EEPROM, address, server);
+        
+      } else if(data == "QUIT")
         running = false;
     }
   }
@@ -55,10 +111,15 @@ void config() {
 void setup() {
   
   Serial.begin(9600);
-
+  Wire.begin();
+    
   pinMode(CONFIG_PIN, INPUT);
   if(digitalRead(CONFIG_PIN)) 
     config();
+
+  String ssid = readStringFromEEPROM(EEPROM, 0);
+  String password = readStringFromEEPROM(EEPROM, ssid.length()+2);
+  String server = readStringFromEEPROM(EEPROM, ssid.length()+2 + password.length()+2);
 
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
@@ -68,10 +129,10 @@ void setup() {
 
   // attempt to connect to Wifi network:
   while (status != WL_CONNECTED) {
-    Serial.print("Attempting to connect to SSID: ");
-    Serial.println(ssid);
+    //Serial.print("Attempting to connect to SSID: ");
+//    Serial.println(ssid);
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-    status = WiFi.begin(ssid, pass);
+//    status = WiFi.begin(ssid, pass);
 
     delay(2000);
   }
@@ -79,9 +140,9 @@ void setup() {
 
   Serial.println("\nStarting connection to server...");
 
-  if (client.connect(server, 14123)) {
+//  if (client.connect(server, 14123)) {
     Serial.println("connected to server");
-  }
+//  }
 
   analogReadResolution(7);
 
