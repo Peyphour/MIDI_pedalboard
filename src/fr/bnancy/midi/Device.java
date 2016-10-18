@@ -4,11 +4,12 @@ import java.io.Serializable;
 
 public class Device implements Serializable {
 	
-	public Device(int pin, int channel, TYPE type, String name) {
+	public Device(int pin, int channel, TYPE type, String name, boolean enabled) {
 		this.pin = pin;
 		this.type = type;
-		this.channel = channel;
+		this.number = channel;
 		this.name = name;
+		this.setEnabled(enabled);
 	}
 	public int getPin() {
 		return pin;
@@ -22,11 +23,11 @@ public class Device implements Serializable {
 	public void setType(TYPE type) {
 		this.type = type;
 	}
-	public int getChannel() {
-		return channel;
+	public int getNumber() {
+		return number;
 	}
-	public void setChannel(int channel) {
-		this.channel = channel;
+	public void setNumber(int number) {
+		this.number = number;
 	}
 	public String getName() {
 		return name;
@@ -34,6 +35,13 @@ public class Device implements Serializable {
 	public void setName(String name) {
 		this.name = name;
 	}
+	public boolean isEnabled() {
+		return enabled;
+	}
+	public void setEnabled(boolean enabled) {
+		this.enabled = enabled;
+	}
+	
 	public enum TYPE {
 		UNKNOWN, PRESET_CHANGE, CONTROL_CHANGE, ANALOG;
 	}
@@ -45,7 +53,7 @@ public class Device implements Serializable {
 	
 	private int pin;
 	private TYPE type;
-	private int channel;
+	private int number;
 	private String name;
-
+	private boolean enabled;
 }

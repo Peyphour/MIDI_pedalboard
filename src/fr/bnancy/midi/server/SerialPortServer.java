@@ -102,4 +102,8 @@ public class SerialPortServer {
 		}
 		return false;
 	}
+
+	public boolean pingWifi(String ssid, String password, String serverIp) {
+		return false;
+	}
 }
