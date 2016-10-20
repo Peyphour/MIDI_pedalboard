@@ -16,6 +16,7 @@ public class MidiSocketServer {
 	private boolean running = false;
 	private ServerSocket socket;
 	private ArrayList<ClientRunnable> clients = new ArrayList<ClientRunnable>();
+	private boolean exceptingConnection = false;
 
 	public MidiSocketServer(int port, PacketReceivedListener listener, ServerEventListener eventListener) {
 		this.port = port;
@@ -39,6 +40,17 @@ public class MidiSocketServer {
 		if(this.eventListener != null)
 			eventListener.handleServerEvent(event);
 	}
+	
+	public void reload() {
+		this.stop();
+		try {
+			this.socket = new ServerSocket(this.port);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		emitEvent("TCP server started on port " + port);
+		this.run();
+	}
 
 	public void run() {
 
@@ -51,10 +63,18 @@ public class MidiSocketServer {
 					try {
 						Socket client = socket.accept();
 						emitEvent("Client connected with IP : " + client.getInetAddress().toString());
-						clients.add(new ClientRunnable(client));
-						new Thread(clients.get(clients.size() - 1)).start();
-
+						if(exceptingConnection) {
+							exceptingConnection = false;
+							eventListener.connectionExpected();
+							emitEvent("Excepted connection done!");
+							client.close();
+						} else {
+							clients.add(new ClientRunnable(client));
+							new Thread(clients.get(clients.size() - 1)).start();
+						}
 					} catch (IOException e) {
+						if(!running) 
+							break;
 						e.printStackTrace();
 					}
 				}
@@ -64,6 +84,7 @@ public class MidiSocketServer {
 	}
 
 	public void stop() {
+		emitEvent("Stopping all threads and shutting down the server");
 		running = false;
 		try {
 			for(ClientRunnable client : clients) {
@@ -99,6 +120,14 @@ public class MidiSocketServer {
 				e.printStackTrace();
 			}
 		}
+	}
+
+	public void exceptConnect() {
+		this.exceptingConnection = true;
+	}
+
+	public void pingWifiTimeout() {
+		this.exceptingConnection = false;
 	}
 
 }

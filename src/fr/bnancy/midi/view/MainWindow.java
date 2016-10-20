@@ -54,6 +54,7 @@ public class MainWindow extends JFrame {
 	private JPanel pc_panel;
 	private MidiApplication app;
 	private ArrayList<Device> devices;
+	private boolean pingWifi;
 
 	public MainWindow(MidiApplication app) {
 
@@ -123,6 +124,7 @@ public class MainWindow extends JFrame {
 		panel.add(lblSsid, "2, 2, right, default");
 
 		ssid = new JTextField();
+		ssid.setText("netx2");
 		panel.add(ssid, "4, 2, fill, default");
 		ssid.setColumns(10);
 
@@ -137,14 +139,27 @@ public class MainWindow extends JFrame {
 		panel.add(lblServerAddress, "2, 6, right, default");
 
 		serverIp = new JTextField();
+		serverIp.setText("192.168.1.121");
 		panel.add(serverIp, "4, 6, fill, default");
 		serverIp.setColumns(10);
 
 		JButton btnTestConfiguration = new JButton("Test configuration");
 		btnTestConfiguration.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				boolean success = app.pingWifi(ssid.getText(), new String(password.getPassword()), serverIp.getText());
-				JOptionPane.showMessageDialog(MainWindow.this, "" + success);
+				app.pingWifi((String) comSelect.getSelectedItem(), ssid.getText(), new String(password.getPassword()), serverIp.getText());
+				new Thread(new Runnable() {
+					public void run() {
+						try {
+							Thread.sleep(10000);
+							if(!pingWifi)
+								pingWifiTimeout();
+							else
+								pingWifi = false;
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}
+				}).start();
 			}
 		});
 		btnTestConfiguration.setBounds(33, 224, 120, 23);
@@ -247,7 +262,7 @@ public class MainWindow extends JFrame {
 					if(d.getName().equals(selected))
 						d.setType(TYPE.ANALOG);
 				}
-				
+
 				setDevices(devices);
 			}
 		});
@@ -391,5 +406,15 @@ public class MainWindow extends JFrame {
 			else
 				return Integer.class;
 		}
+	}
+
+	public void pingWifiSuccess() {
+		this.pingWifi = true;
+		System.out.println("success");
+	}
+
+	public void pingWifiTimeout() {
+		System.out.println("timeout");
+		app.pingWifiTimeout();
 	}
 }

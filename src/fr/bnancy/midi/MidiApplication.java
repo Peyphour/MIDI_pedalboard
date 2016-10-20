@@ -114,14 +114,24 @@ public class MidiApplication implements PacketReceivedListener, ServerEventListe
 		try {
 			return comServer.ping(port);
 		} catch (NoSuchPortException | PortInUseException | UnsupportedCommOperationException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return false;
 	}
 
-	public boolean pingWifi(String ssid, String password, String serverIp) {
-		return comServer.pingWifi(ssid, password, serverIp);
+	public boolean pingWifi(String port, String ssid, String password, String serverIp) {
+		server.reload();
+		server.exceptConnect();
+		return comServer.pingWifi(port, ssid, password, serverIp);
+	}
+
+	@Override
+	public void connectionExpected() {
+		mw.pingWifiSuccess();
+	}
+
+	public void pingWifiTimeout() {
+		server.pingWifiTimeout();
 	}
 }
 

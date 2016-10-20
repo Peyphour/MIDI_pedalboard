@@ -101,8 +101,32 @@ void config() {
         address += password.length() + 2;
         writeStringToEEPROM(EEPROM, address, server);
         
-      } else if(data == "QUIT")
+      } else if(data == "QUIT") {
         running = false;
+      } else if(data == "WIFITEST") {
+        String ssid = Serial.readStringUntil('#');
+        String password = Serial.readStringUntil('#');
+        String serverString = Serial.readStringUntil('#');
+        IPAddress server;
+        server.fromString(serverString);
+
+        int statusTest = WL_IDLE_STATUS;
+        int attempts = 0;
+        while (statusTest != WL_CONNECTED) {
+          // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+          statusTest = WiFi.begin(ssid, password);
+          attempts++;
+          if(attempts > 3) {
+            goto ko;
+          }
+          delay(2000);
+        }
+        client.connect(server, 14123);
+        ko:
+        client.stop();
+        WiFi.disconnect();
+      }
+      Serial.flush();
     }
   }
   digitalWrite(LED_BUILTIN, LOW); 
@@ -119,7 +143,9 @@ void setup() {
 
   String ssid = readStringFromEEPROM(EEPROM, 0);
   String password = readStringFromEEPROM(EEPROM, ssid.length()+2);
-  String server = readStringFromEEPROM(EEPROM, ssid.length()+2 + password.length()+2);
+  String serverString = readStringFromEEPROM(EEPROM, ssid.length()+2 + password.length()+2);
+  IPAddress server;
+  server.fromString(serverString);
 
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
@@ -129,10 +155,10 @@ void setup() {
 
   // attempt to connect to Wifi network:
   while (status != WL_CONNECTED) {
-    //Serial.print("Attempting to connect to SSID: ");
-//    Serial.println(ssid);
+    Serial.print("Attempting to connect to SSID: ");
+    Serial.println(ssid);
     // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-//    status = WiFi.begin(ssid, pass);
+    status = WiFi.begin(ssid, password);
 
     delay(2000);
   }
@@ -140,9 +166,9 @@ void setup() {
 
   Serial.println("\nStarting connection to server...");
 
-//  if (client.connect(server, 14123)) {
+  if (client.connect(server, 14123)) {
     Serial.println("connected to server");
-//  }
+  }
 
   analogReadResolution(7);
 
