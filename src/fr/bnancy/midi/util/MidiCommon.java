@@ -1,14 +1,7 @@
 package fr.bnancy.midi.util;
 
+import javax.sound.midi.*;
 import java.util.ArrayList;
-
-import javax.sound.midi.InvalidMidiDataException;
-
-import javax.sound.midi.MidiDevice;
-import javax.sound.midi.MidiSystem;
-import javax.sound.midi.MidiUnavailableException;
-import javax.sound.midi.Receiver;
-import javax.sound.midi.ShortMessage;
 
 /**
  * Utility methods for MIDI usage.
@@ -63,14 +56,14 @@ public class MidiCommon {
 
 	public static MidiDevice.Info getMidiDeviceInfo(String strDeviceName, boolean bForOutput) {
 		MidiDevice.Info[] aInfos = MidiSystem.getMidiDeviceInfo();
-		for (int i = 0; i < aInfos.length; i++) {
-			if (aInfos[i].getName().equals(strDeviceName)) {
+		for (MidiDevice.Info aInfo : aInfos) {
+			if (aInfo.getName().equals(strDeviceName)) {
 				try {
-					MidiDevice device = MidiSystem.getMidiDevice(aInfos[i]);
+					MidiDevice device = MidiSystem.getMidiDevice(aInfo);
 					boolean bAllowsInput = (device.getMaxTransmitters() != 0);
 					boolean bAllowsOutput = (device.getMaxReceivers() != 0);
 					if ((bAllowsOutput && bForOutput) || (bAllowsInput && !bForOutput)) {
-						return aInfos[i];
+						return aInfo;
 					}
 				} catch (MidiUnavailableException e) {
 					e.printStackTrace();

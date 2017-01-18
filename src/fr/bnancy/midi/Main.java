@@ -2,7 +2,7 @@ package fr.bnancy.midi;
 
 import javax.swing.UIManager;
 
-class Main {
+public class Main {
 	public static void main(String args[]) {
 
 		try {
@@ -15,10 +15,6 @@ class Main {
 		MidiApplication app = new MidiApplication();
 		app.start();
 
-		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-			public void run() {
-				app.stop();
-			}
-		}));
+		Runtime.getRuntime().addShutdownHook(new Thread(app::stop));
 	}
 }

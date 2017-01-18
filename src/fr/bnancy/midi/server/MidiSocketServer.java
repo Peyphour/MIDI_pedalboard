@@ -1,12 +1,12 @@
 package fr.bnancy.midi.server;
 
+import fr.bnancy.midi.server.listener.PacketReceivedListener;
+import fr.bnancy.midi.server.listener.ServerEventListener;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
-
-import fr.bnancy.midi.server.listener.PacketReceivedListener;
-import fr.bnancy.midi.server.listener.ServerEventListener;
 
 public class MidiSocketServer {
 
@@ -56,31 +56,27 @@ public class MidiSocketServer {
 
 		this.running = true;
 
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				while(running) {
-					try {
-						Socket client = socket.accept();
-						emitEvent("Client connected with IP : " + client.getInetAddress().toString());
-						if(exceptingConnection) {
-							exceptingConnection = false;
-							eventListener.connectionExpected();
-							emitEvent("Excepted connection done!");
-							client.close();
-						} else {
-							clients.add(new ClientRunnable(client));
-							new Thread(clients.get(clients.size() - 1)).start();
-						}
-					} catch (IOException e) {
-						if(!running) 
-							break;
-						e.printStackTrace();
-					}
-				}
-			}
-
-		}).start();
+		new Thread(() -> {
+            while(running) {
+                try {
+                    Socket client = socket.accept();
+                    emitEvent("Client connected with IP : " + client.getInetAddress().toString());
+                    if(exceptingConnection) {
+                        exceptingConnection = false;
+                        eventListener.connectionExpected();
+                        emitEvent("Excepted connection done!");
+                        client.close();
+                    } else {
+                        clients.add(new ClientRunnable(client));
+                        new Thread(clients.get(clients.size() - 1)).start();
+                    }
+                } catch (IOException e) {
+                    if(!running)
+                        break;
+                    e.printStackTrace();
+                }
+            }
+        }).start();
 	}
 
 	public void stop() {

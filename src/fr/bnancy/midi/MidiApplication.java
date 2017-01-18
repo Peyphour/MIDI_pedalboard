@@ -1,10 +1,5 @@
 package fr.bnancy.midi;
 
-import java.io.IOException;
-import java.util.ArrayList;
-
-import javax.sound.midi.ShortMessage;
-
 import fr.bnancy.midi.Device.TYPE;
 import fr.bnancy.midi.server.MidiSocketServer;
 import fr.bnancy.midi.server.SerialPortServer;
@@ -17,13 +12,17 @@ import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
 import gnu.io.UnsupportedCommOperationException;
 
+import javax.sound.midi.ShortMessage;
+import java.io.IOException;
+import java.util.ArrayList;
+
 public class MidiApplication implements PacketReceivedListener, ServerEventListener, ComPortDiscoveredListener {
 
-	MainWindow mw;
-	MidiSocketServer server;
-	SerialPortServer comServer;
+	private MainWindow mw;
+	private MidiSocketServer server;
+	private SerialPortServer comServer;
 
-	ArrayList<Device> devices = new ArrayList<Device>();
+	private ArrayList<Device> devices = new ArrayList<Device>();
 
 	public void start() {
 

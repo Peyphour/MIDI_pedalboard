@@ -1,46 +1,21 @@
 package fr.bnancy.midi.view;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.ArrayList;
-import java.util.stream.Collectors;
-
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.DefaultComboBoxModel;
-import javax.swing.JButton;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JComponent;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JPasswordField;
-import javax.swing.JScrollPane;
-import javax.swing.JSeparator;
-import javax.swing.JTable;
-import javax.swing.JTextField;
-import javax.swing.SwingConstants;
-import javax.swing.border.MatteBorder;
-import javax.swing.border.TitledBorder;
-import javax.swing.table.AbstractTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
-
 import com.jgoodies.forms.layout.ColumnSpec;
 import com.jgoodies.forms.layout.FormLayout;
 import com.jgoodies.forms.layout.FormSpecs;
 import com.jgoodies.forms.layout.RowSpec;
-
 import fr.bnancy.midi.Device;
 import fr.bnancy.midi.Device.TYPE;
 import fr.bnancy.midi.MidiApplication;
 import fr.bnancy.midi.util.MidiCommon;
+
+import javax.swing.*;
+import javax.swing.border.MatteBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableCellRenderer;
+import java.awt.*;
+import java.util.ArrayList;
 
 public class MainWindow extends JFrame {
 
@@ -71,16 +46,12 @@ public class MainWindow extends JFrame {
 		lblSelectAMidi.setBounds(10, 11, 143, 19);
 		getContentPane().add(lblSelectAMidi);
 
-		midiSelect = new JComboBox<String>();
+		midiSelect = new JComboBox<>();
 		midiSelect.setBounds(10, 36, 153, 20);
 		getContentPane().add(midiSelect);
 
 		JButton btnRefreshList = new JButton("Refresh list");
-		btnRefreshList.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				refreshList();
-			}
-		});
+		btnRefreshList.addActionListener(e -> refreshList());
 
 		btnRefreshList.setBounds(10, 59, 89, 23);
 		getContentPane().add(btnRefreshList);
@@ -144,24 +115,20 @@ public class MainWindow extends JFrame {
 		serverIp.setColumns(10);
 
 		JButton btnTestConfiguration = new JButton("Test configuration");
-		btnTestConfiguration.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				app.pingWifi((String) comSelect.getSelectedItem(), ssid.getText(), new String(password.getPassword()), serverIp.getText());
-				new Thread(new Runnable() {
-					public void run() {
-						try {
-							Thread.sleep(10000);
-							if(!pingWifi)
-								pingWifiTimeout();
-							else
-								pingWifi = false;
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-				}).start();
-			}
-		});
+		btnTestConfiguration.addActionListener(arg0 -> {
+            app.pingWifi((String) comSelect.getSelectedItem(), ssid.getText(), new String(password.getPassword()), serverIp.getText());
+            new Thread(() -> {
+                try {
+                    Thread.sleep(10000);
+                    if(!pingWifi)
+                        pingWifiTimeout();
+                    else
+                        pingWifi = false;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        });
 		btnTestConfiguration.setBounds(33, 224, 120, 23);
 		getContentPane().add(btnTestConfiguration);
 
@@ -199,12 +166,10 @@ public class MainWindow extends JFrame {
 		panel_1.add(comSelect, "4, 2, fill, default");
 
 		JButton btnTset = new JButton("Test communication");
-		btnTset.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				boolean success = app.pingSerial((String) comSelect.getSelectedItem());
-				JOptionPane.showMessageDialog(MainWindow.this, "" + success);
-			}
-		});
+		btnTset.addActionListener(arg0 -> {
+            boolean success = app.pingSerial((String) comSelect.getSelectedItem());
+            JOptionPane.showMessageDialog(MainWindow.this, "" + success);
+        });
 		panel_1.add(btnTset, "2, 4, 3, 1, fill, default");
 
 		JButton btnConfigure = new JButton("Configure");
@@ -216,12 +181,12 @@ public class MainWindow extends JFrame {
 		panel_2.setLayout(new GridLayout(0, 2, 0, 0));
 
 		pc_panel = new JPanel();
-		pc_panel.setBorder(new MatteBorder(1, 0, 0, 1, (Color) new Color(0, 0, 0)));
+		pc_panel.setBorder(new MatteBorder(1, 0, 0, 1, new Color(0, 0, 0)));
 		panel_2.add(pc_panel);
 		pc_panel.setLayout(new BorderLayout(0, 0));
 
 		cc_panel = new JPanel();
-		cc_panel.setBorder(new MatteBorder(1, 0, 0, 1, (Color) new Color(0, 0, 0)));
+		cc_panel.setBorder(new MatteBorder(1, 0, 0, 1, new Color(0, 0, 0)));
 		panel_2.add(cc_panel);
 		cc_panel.setLayout(new BorderLayout(0, 0));
 
@@ -245,27 +210,25 @@ public class MainWindow extends JFrame {
 		panel_6.add(lblDevicesConfiguration, BorderLayout.CENTER);
 
 		JButton btnAddDevice = new JButton("Add device");
-		btnAddDevice.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				String[] unaffectedDevices = devices.stream()
-						.filter(d -> d.getType() == Device.TYPE.UNKNOWN)
-						.map(d -> d.getName())
-						.toArray(String[]::new);
-				String selected = (String) JOptionPane.showInputDialog(MainWindow.this, 
-						"Which device ?",
-						"",
-						JOptionPane.QUESTION_MESSAGE, 
-						null, 
-						unaffectedDevices, 
-						unaffectedDevices[0]);
-				for(Device d : devices) {
-					if(d.getName().equals(selected))
-						d.setType(TYPE.ANALOG);
-				}
+		btnAddDevice.addActionListener(e -> {
+            String[] unaffectedDevices = devices.stream()
+                    .filter(d -> d.getType() == TYPE.UNKNOWN)
+                    .map(Device::getName)
+                    .toArray(String[]::new);
+            String selected = (String) JOptionPane.showInputDialog(MainWindow.this,
+                    "Which device ?",
+                    "",
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    unaffectedDevices,
+                    unaffectedDevices[0]);
+            for(Device d : devices) {
+                if(d.getName().equals(selected))
+                    d.setType(TYPE.ANALOG);
+            }
 
-				setDevices(devices);
-			}
-		});
+            setDevices(devices);
+        });
 		panel_6.add(btnAddDevice, BorderLayout.EAST);
 
 		Component horizontalStrut = Box.createHorizontalStrut(85);

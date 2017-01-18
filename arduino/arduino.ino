@@ -2,9 +2,12 @@
 #include <WiFi101.h>
 #include <Wire.h>
 
+// Default WiFi status
+
 int status = WL_IDLE_STATUS;
 
 WiFiClient client;
+
 
 typedef enum {
   EXPR, SWITCH

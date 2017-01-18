@@ -1,18 +1,13 @@
 package fr.bnancy.midi.server;
 
+import fr.bnancy.midi.server.listener.ComPortDiscoveredListener;
+import gnu.io.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
-
-import fr.bnancy.midi.server.listener.ComPortDiscoveredListener;
-import gnu.io.CommPort;
-import gnu.io.CommPortIdentifier;
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
-import gnu.io.SerialPort;
-import gnu.io.UnsupportedCommOperationException;
 
 public class SerialPortServer {
 
@@ -26,39 +21,36 @@ public class SerialPortServer {
 	}
 
 	public void run() {
-		new Thread(new Runnable() {
-			@SuppressWarnings("unchecked")
-			public void run() {
-				while (running) {
+		new Thread(() -> {
+            while (running) {
 
-					Enumeration<CommPortIdentifier> ports = CommPortIdentifier.getPortIdentifiers();
+                Enumeration<CommPortIdentifier> ports = CommPortIdentifier.getPortIdentifiers();
 
-					while (ports.hasMoreElements()) {
-						CommPortIdentifier port = ports.nextElement();
-						if (port.getPortType() == CommPortIdentifier.PORT_SERIAL) {
-							lastPorts.remove(port.getName());
-							tmp.add(port.getName());
-							listener.handlePort(port.getName());
-						}
-					}
+                while (ports.hasMoreElements()) {
+                    CommPortIdentifier port = ports.nextElement();
+                    if (port.getPortType() == CommPortIdentifier.PORT_SERIAL) {
+                        lastPorts.remove(port.getName());
+                        tmp.add(port.getName());
+                        listener.handlePort(port.getName());
+                    }
+                }
 
-					for (String deletedPort : lastPorts)
-						listener.handlePortRemoved(deletedPort);
+                for (String deletedPort : lastPorts)
+                    listener.handlePortRemoved(deletedPort);
 
-					lastPorts.clear();
-					lastPorts.addAll(tmp);
-					tmp.clear();
-					try {
-						Thread.sleep(500);
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		}).start();
+                lastPorts.clear();
+                lastPorts.addAll(tmp);
+                tmp.clear();
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
 	}
 
-	public void openPort(String portName) {
+	private void openPort(String portName) {
 		CommPortIdentifier portIdentifier = null;
 		try {
 			portIdentifier = CommPortIdentifier.getPortIdentifier(portName);
@@ -89,7 +81,7 @@ public class SerialPortServer {
 		}
 	}
 
-	public void closePort() {
+	private void closePort() {
 		if(port == null) {
 			System.out.println("port already closed");
 			return;
